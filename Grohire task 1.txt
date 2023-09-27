@@ -1,0 +1,64 @@
+                
+                     Task - 1
+
+Develop a Python-based Recommendation System
+that leverages machine learning algorithms to
+provide personalized product, movie, or music
+recommendations to users. This project aims to
+enhance user experience and engagement by
+suggesting relevant content based on their
+preferences and behavior.# Import necessary libraries
+import pandas as pd
+from surprise import Dataset, Reader, SVD
+from surprise.model_selection import train_test_split
+from surprise import accuracy
+
+# Step 1: Data Collection
+
+movies_df = pd.read_csv('movies.csv')
+ratings_df = pd.read_csv('ratings.csv')
+
+# Step 2: Data Preprocessing
+# Create a Reader object for Surprise library
+reader = Reader(rating_scale=(1, 5))
+
+# Load the dataset into the Surprise format
+data = Dataset.load_from_df(ratings_df[['userId', 'movieId', 'rating']], reader)
+
+# Split the data into training and testing sets
+trainset, testset = train_test_split(data, test_size=0.2, random_state=42)
+
+# Step 3: Model Selection and Step 4: Model Training
+# Choose a collaborative filtering algorithm (SVD) and train the model
+model = SVD(n_factors=100, random_state=42)
+model.fit(trainset)
+
+# Step 5: Recommendation Generation
+# Create a function to generate movie recommendations for a given user
+def get_movie_recommendations(user_id, num_recommendations=10):
+    # Get a list of all movie IDs
+    all_movie_ids = ratings_df['movieId'].unique()
+    
+    # Remove movies the user has already rated
+    rated_movies = ratings_df[ratings_df['userId'] == user_id]['movieId']
+    unrated_movies = [movie_id for movie_id in all_movie_ids if movie_id not in rated_movies]
+    
+    # Predict ratings for unrated movies
+    predictions = []
+    for movie_id in unrated_movies:
+        predicted_rating = model.predict(user_id, movie_id).est
+        predictions.append((movie_id, predicted_rating))
+    
+    # Sort movies by predicted rating in descending order
+    predictions.sort(key=lambda x: x[1], reverse=True)
+    
+    # Get the top N recommendations
+    top_recommendations = predictions[:num_recommendations]
+    
+    # Map movie IDs to movie titles
+    recommended_movies = [movies_df[movies_df['movieId'] == movie_id]['title'].values[0] for movie_id, _ in top_recommendations]
+    
+    return recommended_movies
+
+
+
